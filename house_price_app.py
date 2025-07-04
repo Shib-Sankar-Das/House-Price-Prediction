@@ -75,7 +75,7 @@ def load_models():
     """Load all models and preprocessing components with detailed error handling"""
     try:
         import os
-        models_dir = 'models'
+        models_dir = 'model'
         
         # Check if models directory exists
         if not os.path.exists(models_dir):
