@@ -1,10 +1,10 @@
-pandas==1.5.3
-numpy==1.24.3
+pandas
+numpy
 matplotlib==3.7.1
 seaborn==0.12.2
 plotly==5.14.1
 scikit-learn==1.2.2
-streamlit==1.23.1
+streamlit
 joblib==1.2.0
 scipy==1.10.1
 ipykernel==6.23.1
