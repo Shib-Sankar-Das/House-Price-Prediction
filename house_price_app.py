@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import cloudpickle as cp
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -47,13 +48,34 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Version check function
+def check_environment():
+    """Check and display environment information"""
+    try:
+        import sklearn
+        import pandas as pd
+        import numpy as np
+        import streamlit as st
+        
+        env_info = {
+            'Python': st.__version__,
+            'Streamlit': st.__version__,
+            'scikit-learn': sklearn.__version__,
+            'Pandas': pd.__version__,
+            'NumPy': np.__version__
+        }
+        
+        return env_info
+    except Exception as e:
+        return {'Error': str(e)}
+
 # Load models and preprocessing components
 @st.cache_resource
 def load_models():
     """Load all models and preprocessing components with detailed error handling"""
     try:
         import os
-        models_dir = 'models'
+        models_dir = 'model'
         
         # Check if models directory exists
         if not os.path.exists(models_dir):
@@ -81,17 +103,36 @@ def load_models():
             st.error("Please run the Jupyter notebook first to generate all required model files.")
             return None
         
+        
+         # # Load model metadata
+        # metadata = joblib.load(os.path.join(models_dir, 'model_metadata.pkl'))
+        
+        # # Load models
+        # regression_model = joblib.load(os.path.join(models_dir, 'best_regression_model.pkl'))
+        # classification_model = joblib.load(os.path.join(models_dir, 'best_classification_model.pkl'))
+        
+        # # Load preprocessing components
+        # encoders = joblib.load(os.path.join(models_dir, 'label_encoders.pkl'))
+        # feature_columns = joblib.load(os.path.join(models_dir, 'feature_columns.pkl'))
+        # scaler = joblib.load(os.path.join(models_dir, 'scaler.pkl'))
+        
         # Load model metadata
-        metadata = joblib.load(os.path.join(models_dir, 'model_metadata.pkl'))
+        with open(os.path.join(models_dir, 'model_metadata.pkl'), 'rb') as f:
+            metadata = cp.load(f)
         
         # Load models
-        regression_model = joblib.load(os.path.join(models_dir, 'best_regression_model.pkl'))
-        classification_model = joblib.load(os.path.join(models_dir, 'best_classification_model.pkl'))
+        with open(os.path.join(models_dir, 'best_regression_model.pkl'), 'rb') as f:
+            regression_model = cp.load(f)
+        with open(os.path.join(models_dir, 'best_classification_model.pkl'), 'rb') as f:
+            classification_model = cp.load(f)
         
         # Load preprocessing components
-        encoders = joblib.load(os.path.join(models_dir, 'label_encoders.pkl'))
-        feature_columns = joblib.load(os.path.join(models_dir, 'feature_columns.pkl'))
-        scaler = joblib.load(os.path.join(models_dir, 'scaler.pkl'))
+        with open(os.path.join(models_dir, 'label_encoders.pkl'), 'rb') as f:
+            encoders = cp.load(f)
+        with open(os.path.join(models_dir, 'feature_columns.pkl'), 'rb') as f:
+            feature_columns = cp.load(f)
+        with open(os.path.join(models_dir, 'scaler.pkl'), 'rb') as f:
+            scaler = cp.load(f)
         
         return {
             'metadata': metadata,
@@ -102,8 +143,38 @@ def load_models():
             'scaler': scaler
         }
     except Exception as e:
-        st.error(f"❌ Error loading models: {str(e)}")
-        st.error("Please ensure you have run the Jupyter notebook first to generate all model files.")
+        error_message = str(e)
+        if "incompatible dtype" in error_message or "node array" in error_message:
+            st.error("❌ **Model Version Incompatibility Detected**")
+            st.error("The saved models were created with a different version of scikit-learn.")
+            st.markdown("""
+            ### 🔧 **Solution:**
+            
+            **The models need to be regenerated with the current scikit-learn version.**
+            
+            #### **Option 1: Regenerate Models (Recommended)**
+            1. **Open the Jupyter notebook** (`house_price_prediction_ml.ipynb`)
+            2. **Run all cells** to retrain and save the models
+            3. **Restart this Streamlit app**
+            
+            #### **Option 2: Install Compatible Version**
+            Run this command in your terminal:
+            ```bash
+            pip install scikit-learn==1.2.2
+            ```
+            
+            #### **Current Environment:**
+            - Your current scikit-learn version may be different from the version used to train the models
+            - The models were saved with scikit-learn 1.2.2 (see requirements.txt)
+            
+            #### **Why This Happens:**
+            - scikit-learn internal data structures changed between versions
+            - Pickled models from older versions are incompatible with newer versions
+            - This is a common issue when deploying ML models across different environments
+            """)
+        else:
+            st.error(f"❌ Error loading models: {str(e)}")
+            st.error("Please ensure you have run the Jupyter notebook first to generate all model files.")
         return None
 
 # Load sample data for reference
@@ -125,22 +196,56 @@ def main():
     sample_data = load_sample_data()
     
     if models is None:
-        st.error("❌ Failed to load models. Please ensure all model files are in the 'models' directory.")
+        st.error("❌ **Failed to load models.**")
         st.markdown("""
-        ### 🔧 To fix this issue:
-        1. **Run the Jupyter notebook** (`house_price_prediction_ml.ipynb`) first
-        2. **Ensure all model files are generated** in the `models/` directory
+        ### 🔧 **How to Fix This Issue:**
+        
+        #### **Most Common Solution:**
+        1. **Open the Jupyter notebook** (`house_price_prediction_ml.ipynb`)
+        2. **Run all cells** to train and save the models
         3. **Restart this Streamlit app**
         
-        ### 📋 Required files:
-        - `models/model_metadata.pkl`
-        - `models/best_regression_model.pkl`
-        - `models/best_classification_model.pkl`
-        - `models/label_encoders.pkl`
-        - `models/feature_columns.pkl`
-        - `models/scaler.pkl`
+        #### **If You're Getting Version Errors:**
+        The models may have been saved with a different version of scikit-learn. 
+        
+        **Quick Fix:**
+        ```bash
+        pip install scikit-learn==1.2.2
+        ```
+        
+        **Or regenerate models with current version:**
+        - Re-run the entire Jupyter notebook
+        - This will create new model files compatible with your current environment
+        
+        ### 📋 **Required Files Checklist:**
+        Make sure these files exist in the `models/` directory:
+        - ✅ `models/model_metadata.pkl`
+        - ✅ `models/best_regression_model.pkl`
+        - ✅ `models/best_classification_model.pkl`
+        - ✅ `models/label_encoders.pkl`
+        - ✅ `models/feature_columns.pkl`
+        - ✅ `models/scaler.pkl`
+        
+        ### 🔍 **Troubleshooting Steps:**
+        1. Check if the `models/` directory exists
+        2. Verify all required files are present
+        3. Check scikit-learn version compatibility
+        4. Re-run the Jupyter notebook if needed
+        
+        ### 📞 **Still Having Issues?**
+        - Ensure you're running this from the correct directory
+        - Check that Python can access the models folder
+        - Try deleting the models folder and regenerating all files
         """)
         return
+    
+    # Display environment information
+    # st.markdown("### 🛠️ Environment Information")
+    
+    # env_info = check_environment()
+    
+    # for key, value in env_info.items():
+    #     st.markdown(f"**{key}:** {value}")
     
     # Sidebar for navigation
     st.sidebar.title("Navigation")
@@ -621,7 +726,26 @@ def show_about_page():
     
     For questions, suggestions, or issues with this application, please refer to the project documentation 
     or contact the development team.
+    
+    ### 🔧 Environment Information
+    
+    **Current Environment:**
     """)
+    
+    # Display environment information
+    # env_info = check_environment()
+    # for key, value in env_info.items():
+    #     st.write(f"- **{key}:** {value}")
+    
+    # st.markdown("""
+    # **Expected Versions (from requirements.txt):**
+    # - **scikit-learn:** 1.2.2
+    # - **pandas:** 1.5.3
+    # - **numpy:** 1.24.3
+    # - **streamlit:** 1.23.1
+    
+    # *Note: Version mismatches may cause model loading issues.*
+    # """)
 
 if __name__ == "__main__":
     # Check if running in Streamlit context

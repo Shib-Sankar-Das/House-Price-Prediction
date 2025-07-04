@@ -10,3 +10,4 @@ scipy==1.10.1
 ipykernel==6.23.1
 notebook==6.5.4
 jupyter==1.0.0
+cloudpickle==2.2.1
