@@ -271,7 +271,7 @@ def show_home_page(models):
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        st.image("https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80", 
+        st.image("house_img.png", 
                  caption="Predict house prices with machine learning", use_container_width=True)
     
     st.markdown("""
