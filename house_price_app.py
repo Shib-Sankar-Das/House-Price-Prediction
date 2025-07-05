@@ -272,7 +272,7 @@ def show_home_page(models):
     
     with col2:
         st.image("house_img.png", 
-                 caption="Predict house prices with machine learning", use_container_width=True)
+                 caption="Predict house prices with machine learning")
     
     st.markdown("""
     ### 🎯 What This App Does
